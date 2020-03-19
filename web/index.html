@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Thermo-Control</title>
+<link rel="manifest" href="webmanifest.json">
+<script src="common.js"></script>
+
+<style>
+body  {
+    background-image: url("background.png");
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+}
+.spacing {
+    padding: 120px 0px 130px 0px;
+}
+.top_button {
+    display: inline-block;
+    padding: 10px 50px 10px 50px;
+    border-style: solid;
+    border-color: transparent;
+}
+.bottom_button {
+    display: inline-block;
+    padding: 250px 10px 0px 10px;
+}
+#temperature {
+    font-family: Consolas;
+    color: white;
+    font-size: 140px;
+    display: inline-block;
+}
+.top_container, .bottom_container {
+    width: 100%;
+    text-align: center;
+}
+</style>
+
+</head>
+ 
+<body onload="start()">
+
+<script>
+
+  var wWebSocket;
+
+  function start()
+  {
+    try
+    {
+      if (typeof QueryString.server != 'undefined')
+        wWebSocket = new WebSocket(QueryString.server);
+      else
+        wWebSocket = new WebSocket("wss://" + window.location.hostname + "/wsthermobase");
+    }
+    catch (exc)
+    {
+      console.log(exc.message);
+    }
+    wWebSocket.onmessage = function (evt) { parseMessage(evt); };
+  }
+
+  function parseMessage(evt)
+  {
+    console.log(evt.data);
+    var wCommand = evt.data.split(",");
+    if (wCommand.length == 2)
+    {
+      document.getElementById('temperature').innerHTML = wCommand[1] + "&deg;C";
+    }
+  }
+  
+</script>
+
+<div class="spacing"></div>
+
+<div class="top_container">
+<div class="top_button">
+<button onclick='wWebSocket.send("heating");'><img src="heating.png" /></button>
+</div>
+<div class="top_button">
+<button onclick='wWebSocket.send("cooling");'><img src="cooling.png" /></button>
+</div>
+</div>
+
+<div class="bottom_container">
+<div class="bottom_button">
+<button onclick='wWebSocket.send("minus");'><img src="minus.png" /></button>
+</div>
+<div id="temperature">
+--&deg;C
+</div>
+<div class="bottom_button">
+<button onclick='wWebSocket.send("plus");'><img src="plus.png" /></button>
+</div>
+</div>
+
+</body>
+</html>

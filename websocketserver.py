@@ -12,12 +12,12 @@ class WebSocketServer:
     @asyncio.coroutine
     def consumer_handler(self, websocket):
         while True:
-            yield from self.consume(websocket, self.connected)
+            yield from self.consume(websocket)
 
     @asyncio.coroutine
     def producer_handler(self, websocket):
         while True:
-            yield from self.produce(websocket, self.connected)
+            yield from self.produce(websocket)
 
     @asyncio.coroutine
     def handler(self, websocket, path):
@@ -26,8 +26,8 @@ class WebSocketServer:
         self.connected.add(websocket)
         try:
             yield from self.on_connect(websocket)
-            consumer_task = asyncio.async(self.consumer_handler(websocket))
-            producer_task = asyncio.async(self.producer_handler(websocket))
+            consumer_task = asyncio.ensure_future(self.consumer_handler(websocket, self.connected))
+            producer_task = asyncio.ensure_future(self.producer_handler(websocket, self.connected))
             done, pending = yield from asyncio.wait(
                 [consumer_task, producer_task],
                 return_when=asyncio.FIRST_COMPLETED,
