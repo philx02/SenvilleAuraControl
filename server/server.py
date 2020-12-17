@@ -35,7 +35,11 @@ def set_hp(hp_data):
         command += "c"
     else:
         command = "off"
-    call(["irsend", "--count=3", "send_once", "senville_aura", command])
+    success = call(["irsend", "--count=3", "send_once", "senville_aura", command])
+    if success != 0:
+        call(["killall", "lircd"])
+        call(["/usr/sbin/lircd", "-d", "/dev/lirc0"])
+        call(["irsend", "--count=3", "send_once", "senville_aura", command])
 
 class HpServer:
     def __init__(self, hp_data_pickle = None):
