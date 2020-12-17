@@ -16,22 +16,26 @@ class HpData:
     def __init__(self):
         self.mode = HpMode.HEATING
         self.temperature_command = 23
+        self.power_on = True
 
     def __eq__(self, other): 
         if not isinstance(other, HpData):
             # don't attempt to compare against unrelated types
             return NotImplemented
-        return self.mode == other.mode and self.temperature_command == other.temperature_command
+        return self.mode == other.mode and self.temperature_command == other.temperature_command and self.power_on == other.power_on
 
 def generate_message(hp_data):
-    return str(hp_data.mode) + "," + str(hp_data.temperature_command)
+    return str(hp_data.mode) + "," + str(hp_data.temperature_command) + "," + ("on" if hp_data.power_on else "off")
 
 def set_hp(hp_data):
     print(generate_message(hp_data))
-    command = "heat_" if hp_data.mode == HpMode.HEATING else "cool_"
-    command += str(hp_data.temperature_command)
-    command += "c"
-    call(["irsend", "send_once", "senville_aura", command])
+    if hp_data.power_on:
+        command = "heat_" if hp_data.mode == HpMode.HEATING else "cool_"
+        command += str(hp_data.temperature_command)
+        command += "c"
+    else:
+        command = "off"
+    call(["irsend", "--count=3", "send_once", "senville_aura", command])
 
 class HpServer:
     def __init__(self, hp_data_pickle = None):
@@ -77,6 +81,14 @@ class HpServer:
         elif message == "plus" and self.hp_data.temperature_command < 30:
             with (yield from self.lock):
                 self.hp_data.temperature_command += 1
+                self.timer = 10
+        elif message == "off":
+            with (yield from self.lock):
+                self.hp_data.power_on = False
+                self.timer = 10
+        elif message == "on":
+            with (yield from self.lock):
+                self.hp_data.power_on = True
                 self.timer = 10
         for client in websockets:
             yield from client.send(generate_message(self.hp_data))
