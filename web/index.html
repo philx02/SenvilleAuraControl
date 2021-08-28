@@ -58,6 +58,9 @@ body  {
     {
       console.log(exc.message);
     }
+    wWebSocket.onopen = function(e) {
+      wWebSocket.send("refresh");
+    };
     wWebSocket.onmessage = function (evt) { parseMessage(evt); };
   }
 

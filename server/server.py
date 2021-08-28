@@ -70,32 +70,39 @@ class HpServer:
     def consume(self, websocket, websockets):
         message = yield from websocket.recv()
         print(message)
-        if message == "heating":
+        if message == "refresh":
             with (yield from self.lock):
-                self.hp_data.mode = HpMode.HEATING
-                self.timer = 10
-        elif message == "cooling":
+                message = generate_message(self.hp_data)
+            yield from websocket.send(message)
+        else:
+            if message == "heating":
+                with (yield from self.lock):
+                    self.hp_data.mode = HpMode.HEATING
+                    self.timer = 10
+            elif message == "cooling":
+                with (yield from self.lock):
+                    self.hp_data.mode = HpMode.COOLING
+                    self.timer = 10
+            elif message == "minus" and self.hp_data.temperature_command > 17:
+                with (yield from self.lock):
+                    self.hp_data.temperature_command -= 1
+                    self.timer = 10
+            elif message == "plus" and self.hp_data.temperature_command < 30:
+                with (yield from self.lock):
+                    self.hp_data.temperature_command += 1
+                    self.timer = 10
+            elif message == "off":
+                with (yield from self.lock):
+                    self.hp_data.power_on = False
+                    self.timer = 10
+            elif message == "on":
+                with (yield from self.lock):
+                    self.hp_data.power_on = True
+                    self.timer = 10
             with (yield from self.lock):
-                self.hp_data.mode = HpMode.COOLING
-                self.timer = 10
-        elif message == "minus" and self.hp_data.temperature_command > 17:
-            with (yield from self.lock):
-                self.hp_data.temperature_command -= 1
-                self.timer = 10
-        elif message == "plus" and self.hp_data.temperature_command < 30:
-            with (yield from self.lock):
-                self.hp_data.temperature_command += 1
-                self.timer = 10
-        elif message == "off":
-            with (yield from self.lock):
-                self.hp_data.power_on = False
-                self.timer = 10
-        elif message == "on":
-            with (yield from self.lock):
-                self.hp_data.power_on = True
-                self.timer = 10
-        for client in websockets:
-            yield from client.send(generate_message(self.hp_data))
+                message = generate_message(self.hp_data)
+            for client in websockets:
+                yield from client.send(message)
 
     @asyncio.coroutine
     def notify_clients(self):
